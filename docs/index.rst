@@ -10,11 +10,9 @@ Welcome to Turnable's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   game
-   map
-   rooms
-   chars
-   streams
+   first_steps
+   api/api
+
 
 
 
