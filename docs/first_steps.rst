@@ -2,7 +2,7 @@ First steps
 ===========
 
 Installing
-----------
+***********
 
 You can install Turnable from PyPi with: ::
 
@@ -14,12 +14,29 @@ You can install Turnable from PyPi with: ::
 
 
 Getting started
----------------
+***************
 
 **WIP**
 
 
 Most basic game
----------------
+***************
 
 **WIP**
+
+
+Extending PlayableCharacter
+***************************
+
+
+.. _special-commands:
+
+Special Commands
+----------------
+
+Special commands are commands that start with a `:` (colon).
+These commands do not use the player turn, for example, `:help`.
+
+You can use this for all types of things, not only showing data to the user or changing settings.
+You could, for example, have a custom ``PlayableEntity`` that has an inventory and access to
+actions like ``:use 1`` or ``:check 1``.

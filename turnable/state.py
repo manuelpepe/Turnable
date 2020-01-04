@@ -7,6 +7,6 @@ class States(Enum):
     IN_REWARD_ROOM = 2
     IN_FIGHT_ROOM_BEFORE_FIGHT = 3
     IN_FIGHT = 4
-    IN_FIGHT_ROOM_AFTER_FIGHT = 5
+    IN_FIGHT_ROOM_DONE = 5
     LOST = 6
     WON = 7

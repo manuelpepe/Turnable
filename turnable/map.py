@@ -1,57 +1,11 @@
 #!/bin/usr/python3
+import logging
+import random
 from typing import Tuple
 from math import floor
 
-from turnable.rooms import Room
-
-
-class InvalidMoveException(Exception):
-    pass
-
-
-class Position:
-    """ Represents an (X, Y) position. """
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def copy(self) -> 'Position':
-        return Position(self.x, self.y)
-
-    def __add__(self, other):
-        self.x += other.x
-        self.y += other.y
-        return self
-
-    def __iadd__(self, other):
-        return self.__add__(other)
-
-    def __str__(self):
-        return f'(x={self.x}, y={self.y})'
-
-    def __eq__(self, other):
-        return other.x == self.x and other.y == self.y
-
-
-def parse_directions(dir_: str):
-    """
-    Returns delta position based on string representation.
-
-    Valid Inputs:
-    * up
-    * down
-    * left
-    * right
-    """
-    if dir_ == 'UP':
-        return Position(1, 0)
-    if dir_ == 'DOWN':
-        return Position(-1, 0)
-    if dir_ == 'LEFT':
-        return Position(0, -1)
-    if dir_ == 'RIGHT':
-        return Position(0, 1)
-    return None
+from turnable.geometry import Position
+from turnable.rooms import FightRoom, Room, EmptyRoom
 
 
 class Map:
@@ -59,7 +13,12 @@ class Map:
     Contains the map grid and logic.
     As is, generates a 2d grid of (:py:attr:`Map.BASE_MAP_SIZE` + :py:attr:`self.level`.
     """
+    _logger = logging.getLogger('turnable.map.Map')
     BASE_MAP_SIZE = 6
+    ROOM_DIST = [
+        (FightRoom, 0.3),
+        (EmptyRoom, 0.7),
+    ]
 
     def __init__(self):
         self.game = None
@@ -67,22 +26,8 @@ class Map:
         self.player_pos = None
         self.level = 0
 
-    @property
-    def player_pos(self):
-        """ Returns player position. This is updated on :py:meth:`turnable.chars.Character.move`. """
-        return self.__player_pos
-
-    @player_pos.setter
-    def player_pos(self, pos):
-        """ Tests new player position is inside grid bounds. """
-        if pos is None:
-            self.__player_pos = pos
-            return
-
-        if pos.x < 0 or pos.y < 0 or pos.x > len(self.grid[0]) - 1 or pos.y > len(self.grid) - 1:
-            raise InvalidMoveException('Player position out of range.')
-
-        self.__player_pos = pos
+    def is_valid(self, pos: Position):
+        return 0 <= pos.x < len(self.grid[0]) and 0 <= pos.y < len(self.grid)
 
     def reset(self) -> Tuple[int, int]:
         """ Returns :py:attr:`self.level` to 1 and regenerates grid. """
@@ -97,18 +42,40 @@ class Map:
 
     def get_player_room(self):
         """ Return room in player position. """
-        return self.grid[self.player_pos.x][self.player_pos.y]
+        return self.grid[self.game.player.pos.x][self.game.player.pos.y]
 
     def get_start_pos(self):
         """ Returns starting room. Starting room will always be an :py:class:`room.EmptyRoom`. """
         return Position(floor(len(self.grid[0]) / 2), floor(len(self.grid) / 2))
 
     def _generate_grid(self, x: int = BASE_MAP_SIZE, y: int = BASE_MAP_SIZE) -> Tuple[int, int]:
-        """ Generates X by Y grid and returns (X, Y) as tuple. """
-        self.grid = []
-        for x_ in range(x):
-            self.grid.append([])
-            for y_ in range(y):
-                room = Room(Position(x_, y_), self.game)
-                self.grid[x_].append(room)
+        """
+        Generates X by Y grid and returns (X, Y) as tuple.
+
+        Steps:
+        # Create grid
+        # Position enemies
+        """
+        self.grid = self._generate_grid_skeleton(x, y)
         return x, y
+
+    def _generate_grid_skeleton(self, x: int, y: int) -> list:
+        """
+        Creates and returns grid skeleton.
+        """
+        grid = []
+        for x_ in range(x):
+            grid.append([])
+            for y_ in range(y):
+                room = self._get_next_room()(Position(x_, y_), self.game)
+                grid[x_].append(room)
+        return grid
+
+    def _get_next_room(self):
+        """
+        Generates next room based on weights defined in :py:attr:`~ROOM_DIST`
+        """
+        return random.choices(
+            [class_ for class_, weight in self.ROOM_DIST],
+            [weight for class_, weight in self.ROOM_DIST]
+        )[0]

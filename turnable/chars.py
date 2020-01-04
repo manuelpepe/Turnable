@@ -4,7 +4,8 @@ import random
 from enum import Enum
 
 from turnable.command import Command
-from turnable.map import Position, parse_directions, InvalidMoveException
+from turnable.map import Position
+from turnable.geometry import parse_directions
 from turnable.state import States
 from turnable.streams import CommandRequest, CommandResponse
 
@@ -41,18 +42,27 @@ class HealthyEntity:
 
         self._logger.debug(f'DMG - {self} received {damage}.')
 
+    def is_alive(self):
+        """ Returns if entity has health left. """
+        return self.health > 0
 
-class Character(HealthyEntity):
-    """ Represents base playable character. """
-    _logger = logging.getLogger('Character')
+
+class Entity(HealthyEntity):
+    """
+    Represents base entity for both AI (enemies) and not-AI characters Entities.
+    Most of the time you shouldn't need to directly inherit from this class.
+    """
+    _logger = logging.getLogger('Entity')
 
     COMMAND_CLASS = Command
+    TURN_START_HOOK = None
+    TURN_END_HOOK = None
 
     BASE_HEALTH = 100
     BASE_DAMAGE = 10
 
     def __init__(self,
-                 name: str = 'Character',
+                 name: str = 'Entity',
                  damage: int = BASE_DAMAGE,
                  pos: Position = None,
                  *args,
@@ -64,7 +74,7 @@ class Character(HealthyEntity):
         self.pos = pos
         self.status_list = []
 
-        self._logger.debug(f'NEW - {self} at {self.pos}.')
+        self._logger.debug(f'Created {self} at {self.pos}.')
 
     @property
     def actions(self):
@@ -74,44 +84,6 @@ class Character(HealthyEntity):
     def actions(self, action):
         raise AttributeError("Do not directly set value. If you are sure of what you're doing override "
                              "@actions.setter in subclass.")
-
-    def handle_move(self, resp: CommandResponse) -> bool:  # newpos: Position, delta: bool = True) -> Position:
-        """
-        Prepares move from action :py:class:`turnable.streams.CommandResponse`.
-
-        It's good practice to make handler functions for every Actions in :py:meth:`~available_actions` that
-        takes care of setup, and then defer the actual logic to it's own function.
-
-        For other example see :py:meth:`~handle_attack`.
-        """
-        hasdir = len(resp.command.matched) == 1
-        delta = parse_directions(resp.command.matched[0]) if hasdir else None
-        while not delta:
-            dir_cmd = Command('(UP|DOWN|LEFT|RIGHT)', 'Direction')
-            req = CommandRequest('Enter direction: ', [dir_cmd], self.game.inputstream)
-            res = req.send()
-            dir_ = res.command.matched[0] if res.command.matched else None
-            delta = parse_directions(dir_)
-        return self.move(delta, True)
-
-    def move(self, newpos: Position, delta: bool = True) -> bool:
-        """ Tries to move character to new position. If delta is True the position
-         will be added; otherwise it'll be replaced. """
-        oldpos = self.pos.copy() if self.pos else None
-
-        if self.pos and delta:
-            self.pos += newpos
-        else:
-            self.pos = newpos
-
-        try:
-            self.game.map.player_pos = self.pos
-            self._logger.debug(f'MOV - {self} to {self.pos}.')
-            return True
-        except InvalidMoveException:
-            self._logger.warn(f'MOV - {self} couldn\'t move to {self.pos}')
-            self.pos = oldpos
-            return False
 
     def handle_attack(self, resp: CommandResponse):
         """
@@ -139,23 +111,41 @@ class Character(HealthyEntity):
 
     def target_attack(self, enemies):
         """ This method is called first in :py:meth:`~attack` to target enemies. """
-        return random.choice(enemies)
+        raise NotImplementedError('Implement this in your subclass')  # return random.choice(enemies)
 
-    def is_alive(self):
-        """ Returns if character is alive. """
-        return self.health > 0
+    def get_action(self) -> CommandResponse:
+        """
+        This method defines what action is the Entity playing in it's turn.
 
-    def _get_action(self) -> CommandResponse:
-        """ This function is called in :py:meth:`~play_turn` to request the following move. """
-        req = CommandRequest('Enter action: ', self.actions, self.game.inputstream)
-        resp = req.send()
-        while not resp or not resp.command:
-            resp = req.send(True)
-        return resp
+        For a Playable character you might request the input to the user, whilst
+        for an AI character you'd run some algorithm (or random.randint() :D)
+        """
+        raise NotImplementedError('This should be implemented in subclasses.')
 
     def play_turn(self):
-        """ Plays it's turn. You can handle actions here. """
-        resp = self._get_action()
+        """
+        Plays turn and triggers appropiate hooks.
+        You can change the hooks triggered overriding :py:attr:`~TURN_START_HOOK` and :py:attr:`~TURN_END_HOOK`.
+
+        By default, `Entity` enables the :ref:`special-commands` feature.
+        """
+        if self.TURN_START_HOOK:
+            self.game.trigger_hook(self.TURN_START_HOOK)
+
+        resp = self.get_action()
+        while resp.is_special:
+            self._act_on_response(resp)
+            resp = self.get_action()
+
+        self._act_on_response(resp)
+        if self.TURN_END_HOOK:
+            self.game.trigger_hook(self.TURN_END_HOOK)
+
+    def _act_on_response(self, resp):
+        """
+        Takes a :py:class:`turnable.stream.CommandResponse` as *resp* and calls
+        the method defined in ``resp.command.method``, passing the same *resp* as a parameter.
+        """
         action = resp.command
         getattr(self, action.method)(resp)
 
@@ -173,16 +163,100 @@ class Character(HealthyEntity):
         actions = []
         if self.game.state == States.IN_FIGHT:
             actions.append(self.COMMAND_CLASS('ATK', 'Attack enemies.', 'handle_attack', self))
-        else:
-            actions.append(self.COMMAND_CLASS('MOV(UP|DOWN|LEFT|RIGHT)', 'Moves between rooms.', 'handle_move', self))
-
         return actions
 
     def __str__(self):
         return f'{self.name}(hp={self.health}, ar={self.armor}, dmg={self.damage})'
 
 
-class Soldier(Character):
+class PlayableEntity(Entity):
+    """
+    .. _playable-entity:
+
+    Entity that represents a human player.
+    """
+    def available_actions(self):
+        """ Adds move action as a Playable character should be able to move between rooms. """
+        actions = super().available_actions()
+
+        if self.game.state != States.IN_FIGHT:
+            actions.append(self.COMMAND_CLASS('MOV(UP|DOWN|LEFT|RIGHT)', 'Moves between rooms.', 'handle_move', self))
+
+        actions.append(self.COMMAND_CLASS(':HELP', 'Shows available commands.', 'handle_help', self))
+        return actions
+
+    def get_action(self) -> CommandResponse:
+        """ Sends out the request for the next move and retries if command is invalid. """
+        req = CommandRequest('Enter action: ', self.actions, self.game.inputstream)
+        resp = req.send()
+        while not resp or not resp.command:
+            resp = req.send(True)
+        return resp
+
+    def handle_help(self, resp: CommandResponse):
+        self._logger.debug('Actions:')
+        for cmd in self.actions:
+            self._logger.debug(f'{cmd.tag} - {cmd.help}')
+
+    def handle_move(self, resp: CommandResponse) -> bool:  # newpos: Position, delta: bool = True) -> Position:
+        """
+        Prepares move from action :py:class:`turnable.streams.CommandResponse`.
+
+        It's good practice to make handler functions for every Actions in :py:meth:`~available_actions` that
+        takes care of setup, and then defer the actual logic to it's own function.
+
+        For other example see :py:meth:`~handle_attack`.
+        """
+        self._logger.debug('Handling move')
+        hasdir = len(resp.command.matched) == 1
+        delta = parse_directions(resp.command.matched[0]) if hasdir else None
+        while not delta:
+            dir_cmd = Command('(UP|DOWN|LEFT|RIGHT)', 'Direction')
+            req = CommandRequest('Enter direction: ', [dir_cmd], self.game.inputstream)
+            res = req.send()
+            dir_ = res.command.matched[0] if res.command.matched else None
+            delta = parse_directions(dir_)
+        return self.move(delta, True)
+
+    def move(self, newpos: Position, delta: bool = True) -> bool:
+        """ Tries to move character to new position. If delta is True the position
+         will be added; otherwise it'll be replaced. """
+        tmppos = self.pos + newpos if delta else newpos
+        if self.game.map.is_valid(tmppos):
+            self._logger.debug(f'Moving {self} to {tmppos}.')
+            self.pos = tmppos
+            return True
+        self._logger.debug(f'{self} couldn\'t move to {self.pos}')
+        return False
+
+    def target_attack(self, enemies):
+        """ Ask player for target. """
+        target = None
+        if len(enemies) == 1:
+            return enemies[0]
+        while target is None or target > len(enemies) or target <= 0:
+            target = int(input(f'Select target (1-{len(enemies)}).'))
+        return enemies[target - 1]
+
+
+class AIEntity(Entity):
+    """ For now it can only attack. """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('health', 20)
+        kwargs.setdefault('armor', 20)
+        super().__init__(*args, **kwargs)
+
+    def get_action(self) -> CommandResponse:
+        req = CommandRequest('Not used', self.actions)
+        return CommandResponse(req, 'atk')
+
+    def target_attack(self, enemies):
+        self._logger.debug('AIEntity ATTACKING')
+        return self.game.player
+
+
+class Soldier(PlayableEntity):
     """ Deals single target damage. """
 
     def target_attack(self, enemies):
@@ -195,7 +269,7 @@ class Soldier(Character):
         return enemies[target - 1]
 
 
-class Mage(Character):
+class Mage(PlayableEntity):
     """ Mage class. Deals damage in area. """
     BASE_MAX_TARGETS = 2
     BASE_DAMAGE = 5

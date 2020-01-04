@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import Optional
 
@@ -22,13 +23,35 @@ class BaseResponse:
     pass
 
 
+class BaseInputStream:
+    """
+    An input stream knows how to acquire input from the player.
+    In a CLI interface it might read from stdin, while in a network interface it might read from a socket.
+    """
+
+    def request(self, request: BaseRequest) -> BaseResponse:
+        """ Handles :py:class:`CommandRequest` and builds an appropiate :py:class:`CommandResponse`. """
+        raise NotImplementedError()
+
+
+class BaseOutputStream:
+    """
+    An output stream knows how to send info to the user, and in which format.
+    """
+    def send(self, game):
+        """ Handles how the information gets to the player. """
+        raise NotImplementedError()
+
+
 class CommandRequest(BaseRequest):
     """ Represents a request for user input. Part of the **Command Series** that allows for CLI gameplay. """
 
-    def __init__(self, label: str, commands: list = None, stream: 'BaseInputStream' = None):
+    _logger = logging.getLogger('turnable.streams.CommandRequest')
+
+    def __init__(self, label: str, commands: list = None, instream: BaseInputStream = None):
         self.label = label
         self.commands = commands or []
-        self.stream = stream
+        self.stream = instream
         self.retried = False
 
     def get_command(self, tag: str) -> Optional[Command]:
@@ -41,7 +64,7 @@ class CommandRequest(BaseRequest):
     def send(self, retry: bool = False) -> 'CommandResponse':
         """ Sends request through :py:attr:`~stream`. """
         if retry and not self.retried:
-            self.label = f"Try again.\n{self.label}"
+            self.label = f"Invalid command.\n{self.label}"
             self.retried = True
         return self.stream.request(self)
 
@@ -50,29 +73,10 @@ class CommandResponse(BaseResponse):
     """ Represents the response built from a request and user input. """
 
     def __init__(self, request: CommandRequest, command: str):
+        self.rawdata = command.strip()
         self.request = request
-        self.command = request.get_command(command)
-        self.rawdata = command
-
-
-class BaseInputStream:
-    """
-    An input stream knows how to acquire input from the player.
-    In a CLI interface it might read from stdin, while in a network interface it might read from a socket.
-    """
-
-    def request(self, request: CommandRequest) -> CommandResponse:
-        """ Handles :py:class:`CommandRequest` and builds an appropiate :py:class:`CommandResponse`. """
-        raise NotImplementedError()
-
-
-class BaseOutputStream:
-    """
-    An output stream knows how to send info to the user, and in which format.
-    """
-    def send(self, *args, **kwargs):
-        """ Handles how the information gets to the player. """
-        raise NotImplementedError()
+        self.command = request.get_command(self.rawdata)
+        self.is_special = self.rawdata and self.rawdata[0] == ':'
 
 
 class TextInputStream(BaseInputStream):
@@ -89,3 +93,37 @@ class TextInputStream(BaseInputStream):
     def request(self, request: CommandRequest) -> CommandResponse:
         input_ = input(request.label)
         return CommandResponse(request, input_)
+
+
+class TextOutputStream(BaseOutputStream):
+    """
+    Output stream for CLI gameplay.
+    """
+    def send(self, game):
+        player = game.player
+        room = game.room
+        template = f"""
+{room.__class__.__name__}
+{'=' * len(room.__class__.__name__)}
+Position: X={room.pos.x} Y={room.pos.y}
+
+Player
+======
+Health: {player.health}
+Armor: {player.armor}
+Damage: {player.damage}
+Position: X={player.pos.x} Y={player.pos.y}
+"""
+        if hasattr(room, 'enemies'):
+            template += """
+Enemies
+======="""
+            for enemy in room.enemies:
+                template += f"""
+* {enemy.__class__.__name__}
+Health: {enemy.health}
+Armor: {enemy.armor}
+Damage: {enemy.damage}
+"""
+        print(template)
+

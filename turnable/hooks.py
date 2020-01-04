@@ -66,6 +66,8 @@ class HookType(Enum):
     * ``ROOM_END``: At :py:meth:`Room.end` which is called after the turns are played in :py:meth:`Game.level_loop`.
     * ``TURN_ROUND_START``: At the start of :py:meth:`Game.play_turn`.
     * ``TURN_ROUND_END``: At the end of :py:meth:`Game.play_turn`.
+    * ``PLAYER_TURN_START``: At the start of :py:meth:`Entity.play_turn`.
+    * ``PLAYER_TURN_END``: At the start of :py:meth:`Entity.play_turn`.
 
     """
     GAME_START = auto()
@@ -74,7 +76,9 @@ class HookType(Enum):
     LEVEL_END = auto()
     ROOM_START = auto()
     ROOM_END = auto()
-    BEFORE_PLAYER_MOVE = auto()
-    AFTER_PLAYER_MOVE = auto()
     TURN_ROUND_START = auto()
     TURN_ROUND_END = auto()
+    PLAYER_TURN_START = auto()
+    PLAYER_TURN_END = auto()
+    ENEMY_TURN_START = auto()
+    ENEMY_TURN_END = auto()
