@@ -5,18 +5,15 @@ Runs the most barebones version of the game, which is the logger on debug mode o
 import os
 import sys
 import logging
-
-sys.path.insert(0, os.path.abspath('.'))
-
 from turnable.chars import Character
 from turnable.map import Map
 from turnable.game import Game
-from turnable.streams import TextInputStream, TextOutputStream
+from turnable.streams import TextInputStream
 
 
 def main():
     instream = TextInputStream()
-    ostream = TextOutputStream()
+    ostream = None
     player = Character('player_name')
     map_ = Map()
     game = Game('Turnable', [player], map_, instream, ostream   )
