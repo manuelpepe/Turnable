@@ -1,5 +1,12 @@
+"""
+The Game module contains the :py:class:`Game`, which is the core of any Turnable application.
+
+
+"""
+
 import turnable.rooms as rooms
 
+from turnable.hooks import HookType
 from turnable.map import Position, Map
 from turnable.chars import Character
 from turnable.state import States
@@ -21,7 +28,10 @@ def endgame_one_dead(game):
 
 
 class Game:
-    """ Main game object. It handles game loops and basic logic. """
+    """
+    Main game object. It handles game loops and basic logic.
+    It's also in charge of sending data to the outputstream.
+    """
     def __init__(self,
                  name: str,
                  players: List[Character],
@@ -37,6 +47,7 @@ class Game:
         self.outputstream = outputstream
         self.endgame_condition = endgame_condition
 
+        self.hooks = {}
         self.is_done = False
         self.state = None
         self.room = None
@@ -63,6 +74,18 @@ class Game:
         self.__map = map_
         self.__map.game = self
 
+    def add_hook(self, type_: HookType, callback: Callable[['Game'], Any]):
+        """ Adds a hook callback. The callback must accept a single :py:class:`Game` argument. """
+        if not self.hooks.get(type_):
+            self.hooks[type_] = []
+        self.hooks[type_].append(callback)
+
+    def trigger_hook(self, type_: HookType):
+        """ Executes hook passing a refence to the :py:class:`Game` object. """
+        hook = self.hooks.get(type_)
+        if hook:
+            hook(self)
+
     def start(self):
         """ Start game. """
         self.state = States.START
@@ -76,11 +99,13 @@ class Game:
         Handles the main loop of the game.
         While the game is not done it will keep advancing levels and calling :py:meth:`~level_loop`.
         """
+        self.trigger_hook(HookType.GAME_START)
         while not self.is_done:
             for player in self.players:
                 player.move(Position(0, 0), False)
             self.level_loop()
             self.map.next_level()
+        self.trigger_hook(HookType.GAME_END)
 
     def level_loop(self):
         """
@@ -88,6 +113,7 @@ class Game:
         While the player is alive and the level is not finished it will keep calling :py:meth:`play_turn`.
         """
         # self.advance_level will be set to True on AdvanceLevelRoom.start()
+        self.trigger_hook(HookType.LEVEL_START)
         self.advance_level = False
         while not self.advance_level:
             self.room = self.map.get_player_room()
@@ -111,6 +137,7 @@ class Game:
         Handles game turn.
         Player moves first, then enemies (if any). Game state gets updated accordingly.
         """
+        self.trigger_hook(HookType)
         self.update_state()
         for player in self.players:
             player.play_turn()
@@ -124,5 +151,6 @@ class Game:
 
     def endgame(self, state):
         """ Ends game. """
+        self.trigger_hook(HookType.GAME_END)
         self.is_done = True
         self.state = state

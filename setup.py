@@ -4,12 +4,12 @@ from setuptools import setup
 
 setup(name='Turnable',
       version='0.1',
-      description='Turn-based game micro-framework',
+      description='Syncronous turn-based game micro-framework',
       author='Manuel Pepe',
       license='MIT',
       author_email='manuelpepe-dev@outlook.com.ar',
       url='https://github.com/manuelpepe/Turnable',
-      keywords=['game', 'framework', 'gamedev'],
+      keywords=['game', 'framework', 'gamedev', 'syncronous'],
       packages=['turnable'],
       classifiers=[
             "Programming Language :: Python :: 3",

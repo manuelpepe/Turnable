@@ -6,6 +6,7 @@ API
    :caption: Modules:
 
    game
+   hooks
    map
    rooms
    chars

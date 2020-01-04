@@ -69,7 +69,6 @@ class BaseInputStream:
 class BaseOutputStream:
     """
     An output stream knows how to send info to the user, and in which format.
-    It might use an :py:class:`CommandResponse` but that's up to the implementer.
     """
     def send(self, *args, **kwargs):
         """ Handles how the information gets to the player. """
@@ -90,8 +89,3 @@ class TextInputStream(BaseInputStream):
     def request(self, request: CommandRequest) -> CommandResponse:
         input_ = input(request.label)
         return CommandResponse(request, input_)
-
-
-class TextOutputStream(BaseOutputStream):
-    def send(self, text):
-        print(text)

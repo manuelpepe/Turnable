@@ -1,3 +1,6 @@
+from turnable.hooks import HookType
+
+
 class Room:
     TYPES = []
 
@@ -14,10 +17,10 @@ class Room:
         pass
 
     def start(self):
-        pass
+        self.game.trigger_hook(HookType.ROOM_START)
 
     def end(self):
-        pass
+        self.game.trigger_hook(HookType.ROOM_END)
 
 
 class BaseRewardRoom(Room):
