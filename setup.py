@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='Turnable',
-      version='0.1',
+      version='0.2',
       description='Syncronous turn-based game micro-framework',
       author='Manuel Pepe',
       license='MIT',
