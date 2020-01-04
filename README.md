@@ -5,6 +5,14 @@ Trunable is a barebones, easily extensible, turn base game framework.
 [Read the docs!](https://turnable.readthedocs.io/en/latest/) (WIP)
 
 
+Install
+-------
+
+Currently you can only install Turnable from TestPyPi, with pip you can do:
+
+    pip install -i https://test.pypi.org/simple/ Turnable
+
+
 How to contribute?
 ------------------
 
