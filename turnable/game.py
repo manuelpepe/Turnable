@@ -3,6 +3,7 @@ The Game module contains the :py:class:`Game`, which is the core of any Turnable
 
 
 """
+import logging
 
 import turnable.rooms as rooms
 
@@ -12,7 +13,7 @@ from turnable.chars import Character
 from turnable.state import States
 from turnable.streams import BaseInputStream, BaseOutputStream, CommandRequest
 
-from typing import List, Any, Callable
+from typing import List, Any, Callable, Optional
 
 
 class InvalidPlayerException(Exception):
@@ -32,12 +33,14 @@ class Game:
     Main game object. It handles game loops and basic logic.
     It's also in charge of sending data to the outputstream.
     """
+    logger = logging.getLogger('turnable.Game')
+
     def __init__(self,
                  name: str,
                  players: List[Character],
                  map_: Map,
                  inputstream: BaseInputStream,
-                 outputstream: BaseOutputStream,
+                 outputstream: Optional[BaseOutputStream],
                  endgame_condition: Callable = endgame_all_dead):
         self.name = name
         self.players = players
@@ -82,8 +85,8 @@ class Game:
 
     def trigger_hook(self, type_: HookType):
         """ Executes hook passing a refence to the :py:class:`Game` object. """
-        hook = self.hooks.get(type_)
-        if hook:
+        hooks = self.hooks.get(type_) or []
+        for hook in hooks:
             hook(self)
 
     def start(self):
@@ -91,7 +94,6 @@ class Game:
         self.state = States.START
         self.is_done = False
         self.map.reset()
-
         self.main_loop()
 
     def main_loop(self):
@@ -137,14 +139,18 @@ class Game:
         Handles game turn.
         Player moves first, then enemies (if any). Game state gets updated accordingly.
         """
-        self.trigger_hook(HookType)
+        self.trigger_hook(HookType.TURN_ROUND_START)
         self.update_state()
+
         for player in self.players:
             player.play_turn()
+
         if isinstance(self.room, rooms.BaseDangerRoom) and self.room.enemies:
             for enemy in self.room.enemies:
                 enemy.play_turn()
+
         self.update_state()
+        self.trigger_hook(HookType.TURN_ROUND_END)
 
     def check_endgame_conditions(self):
         return self.endgame_condition(self)

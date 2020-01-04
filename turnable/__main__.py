@@ -16,7 +16,7 @@ def main():
     ostream = None
     player = Character('player_name')
     map_ = Map()
-    game = Game('Turnable', [player], map_, instream, ostream   )
+    game = Game('Turnable', [player], map_, instream, ostream)
     game.start()
 
 

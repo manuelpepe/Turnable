@@ -15,6 +15,9 @@ class Position:
         self.x = x
         self.y = y
 
+    def copy(self) -> 'Position':
+        return Position(self.x, self.y)
+
     def __add__(self, other):
         self.x += other.x
         self.y += other.y
@@ -25,6 +28,9 @@ class Position:
 
     def __str__(self):
         return f'(x={self.x}, y={self.y})'
+
+    def __eq__(self, other):
+        return other.x == self.x and other.y == self.y
 
 
 def parse_directions(dir_: str):

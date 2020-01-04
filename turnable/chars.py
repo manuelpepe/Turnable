@@ -75,7 +75,7 @@ class Character(HealthyEntity):
         raise AttributeError("Do not directly set value. If you are sure of what you're doing override "
                              "@actions.setter in subclass.")
 
-    def handle_move(self, resp: CommandResponse) -> Position:  # newpos: Position, delta: bool = True) -> Position:
+    def handle_move(self, resp: CommandResponse) -> bool:  # newpos: Position, delta: bool = True) -> Position:
         """
         Prepares move from action :py:class:`turnable.streams.CommandResponse`.
 
@@ -94,10 +94,10 @@ class Character(HealthyEntity):
             delta = parse_directions(dir_)
         return self.move(delta, True)
 
-    def move(self, newpos: Position, delta: bool = True) -> Position:
+    def move(self, newpos: Position, delta: bool = True) -> bool:
         """ Tries to move character to new position. If delta is True the position
          will be added; otherwise it'll be replaced. """
-        oldpos = (self.pos.x, self.pos.y) if self.pos else None
+        oldpos = self.pos.copy() if self.pos else None
 
         if self.pos and delta:
             self.pos += newpos
@@ -107,11 +107,11 @@ class Character(HealthyEntity):
         try:
             self.game.map.player_pos = self.pos
             self._logger.debug(f'MOV - {self} to {self.pos}.')
+            return True
         except InvalidMoveException:
             self._logger.warn(f'MOV - {self} couldn\'t move to {self.pos}')
-            self.pos.x, self.pos.y = oldpos
-
-        return self.pos
+            self.pos = oldpos
+            return False
 
     def handle_attack(self, resp: CommandResponse):
         """
@@ -173,10 +173,8 @@ class Character(HealthyEntity):
         actions = []
         if self.game.state == States.IN_FIGHT:
             actions.append(self.COMMAND_CLASS('ATK', 'Attack enemies.', 'handle_attack', self))
-            # actions['att'] = 'Attack enemies.'
         else:
             actions.append(self.COMMAND_CLASS('MOV(UP|DOWN|LEFT|RIGHT)', 'Moves between rooms.', 'handle_move', self))
-            # actions['mov'] = 'Move from this room.'
 
         return actions
 
