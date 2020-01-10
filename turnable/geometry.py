@@ -8,12 +8,12 @@ class Position:
         return Position(self.x, self.y)
 
     def __add__(self, other):
+        return Position(self.x + other.x, self.y + other.y)
+
+    def __iadd__(self, other):
         self.x += other.x
         self.y += other.y
         return self
-
-    def __iadd__(self, other):
-        return self.__add__(other)
 
     def __radd__(self, other):
         return Position(self.x + other.x, self.y + other.y)
@@ -36,12 +36,12 @@ def parse_directions(dir_: str):
     * right
     """
     if dir_ == 'UP':
-        return Position(1, 0)
-    if dir_ == 'DOWN':
-        return Position(-1, 0)
-    if dir_ == 'LEFT':
-        return Position(0, -1)
-    if dir_ == 'RIGHT':
         return Position(0, 1)
+    if dir_ == 'DOWN':
+        return Position(0, -1)
+    if dir_ == 'LEFT':
+        return Position(-1, 0)
+    if dir_ == 'RIGHT':
+        return Position(1, 0)
     return None
 
