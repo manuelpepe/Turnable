@@ -7,7 +7,7 @@ import time
 from turnable import Game, HookType, build_game
 from turnable.chars import PlayableEntity, Entity
 from turnable.state import States
-from turnable.streams import TextInputStream, CommandResponse, TextOutputStream
+from turnable.streams import TextInputStream, TextOutputStream, CommandResponse
 from turnable.map import Map
 from turnable.rooms import FightRoom
 
