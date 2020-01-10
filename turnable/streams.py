@@ -1,25 +1,16 @@
-import logging
+from __future__ import annotations
+
 import sys
-from typing import Optional
+import logging
 
 from turnable.command import Command
 
+from typing import Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from turnable.game import Game
+
 
 class StreamException(Exception):
-    pass
-
-
-class RequestInputException(StreamException):
-    pass
-
-
-class BaseRequest:
-    """ Represents a request for user input. """
-    pass
-
-
-class BaseResponse:
-    """ Represents the response built from a request and user input. """
     pass
 
 
@@ -29,7 +20,7 @@ class BaseInputStream:
     In a CLI interface it might read from stdin, while in a network interface it might read from a socket.
     """
 
-    def request(self, request: BaseRequest) -> BaseResponse:
+    def request(self, request: CommandRequest) -> CommandResponse:
         """ Handles :py:class:`CommandRequest` and builds an appropiate :py:class:`CommandResponse`. """
         raise NotImplementedError()
 
@@ -38,12 +29,12 @@ class BaseOutputStream:
     """
     An output stream knows how to send info to the user, and in which format.
     """
-    def send(self, game):
+    def send(self, game: Game):
         """ Handles how the information gets to the player. """
         raise NotImplementedError()
 
 
-class CommandRequest(BaseRequest):
+class CommandRequest:
     """ Represents a request for user input. Part of the **Command Series** that allows for CLI gameplay. """
 
     _logger = logging.getLogger('turnable.streams.CommandRequest')
@@ -61,7 +52,7 @@ class CommandRequest(BaseRequest):
                 return cmd
         return None
 
-    def send(self, retry: bool = False) -> 'CommandResponse':
+    def send(self, retry: bool = False) -> CommandResponse:
         """ Sends request through :py:attr:`~stream`. """
         if retry and not self.retried:
             self.label = f"Invalid command.\n{self.label}"
@@ -69,7 +60,7 @@ class CommandRequest(BaseRequest):
         return self.stream.request(self)
 
 
-class CommandResponse(BaseResponse):
+class CommandResponse:
     """ Represents the response built from a request and user input. """
 
     def __init__(self, request: CommandRequest, command: str):
@@ -99,7 +90,7 @@ class TextOutputStream(BaseOutputStream):
     """
     Output stream for CLI gameplay.
     """
-    def send(self, game):
+    def send(self, game: Game):
         player = game.player
         room = game.room
         template = f"""
