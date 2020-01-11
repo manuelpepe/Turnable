@@ -10,7 +10,10 @@ setup(name='Turnable',
       author_email='manuelpepe-dev@outlook.com.ar',
       url='https://github.com/manuelpepe/Turnable',
       keywords=['game', 'framework', 'gamedev', 'syncronous'],
-      packages=['turnable'],
+      packages=[
+            'turnable',
+            'turnable.helpers'
+      ],
       classifiers=[
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: MIT License",
