@@ -36,6 +36,7 @@ There's only one thing that is tied to hooks, and it is the :py:class:`turnable.
 If you're developing your own UI, you set your own hooks that handle getting the data from the game to
 whatever you are using as UI.
 
+# FIXME: not a good example.
 For example, you could set a hook that triggers every start of the turn round so you can request the user for input
 and show them how their turn played out. ::
 

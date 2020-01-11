@@ -60,7 +60,7 @@ class EmptyRoom(Room):
 class FightRoom(BaseDangerRoom):
     """ Room with enemies that require KILLIN'. """
     ENEMY_DIST = None
-    SAMPLE_DIST = [
+    DEFAULT_DIST = [
         (AIEntity, 1),
     ]
 

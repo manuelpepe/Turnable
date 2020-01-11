@@ -15,7 +15,8 @@ class Map:
     """
     _logger = logging.getLogger('turnable.map.Map')
     BASE_MAP_SIZE = 6
-    ROOM_DIST = [
+    ROOM_DIST = []
+    DEFAULT_DIST = [
         (FightRoom, 0.3),
         (EmptyRoom, 0.7),
     ]

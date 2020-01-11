@@ -153,7 +153,6 @@ class Game:
         if not self.room.has_started:
             self.room.start()
 
-        self.logger.debug(f'Player at {self.room.__class__.__name__}.')
         self.player.play_turn()
         self.room.play_turn()
 
