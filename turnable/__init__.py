@@ -5,7 +5,7 @@ from turnable.game import Game
 from turnable.chars import PlayableEntity
 from turnable.hooks import HookType
 from turnable.rooms import FightRoom
-from turnable.streams import BaseInputStream
+from turnable.streams import BaseInputStream, BaseOutputStream
 from turnable.helpers.text import TextInputStream, TextOutputStream
 
 
@@ -13,15 +13,13 @@ def build_game(game_name: str,
                player_name: str,
                player_class: Callable = PlayableEntity,
                map_class: Callable = Map,
-               instream_class: Callable[[], BaseInputStream] = TextInputStream,
-               outstream_class: Callable = TextOutputStream) -> Game:
+               instream: BaseInputStream = TextInputStream,
+               outstream: BaseOutputStream = TextOutputStream) -> Game:
 
     FightRoom.ENEMY_DIST = FightRoom.DEFAULT_DIST
     Map.ROOM_DIST = Map.DEFAULT_DIST
 
     player = player_class(player_name)
     map_ = map_class()
-    instream = instream_class()
-    outstream = outstream_class() if outstream_class else None
 
-    return Game(game_name, player, map_, instream, outstream)
+    return Game(game_name, player, map_, instream(), outstream())
