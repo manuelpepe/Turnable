@@ -8,8 +8,10 @@ to change.
    :maxdepth: 3
    :caption: Contents:
 
-   first_steps
-   api/api
+   src/what_is_turnable
+   src/projects
+   src/first_steps
+   src/api/index
 
 
 Indices and tables

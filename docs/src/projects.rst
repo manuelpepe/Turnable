@@ -1,0 +1,6 @@
+.. _projects :
+
+Projects
+========
+
+WIP

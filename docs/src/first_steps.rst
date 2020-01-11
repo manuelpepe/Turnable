@@ -13,10 +13,19 @@ You can install Turnable from PyPi with: ::
     first stable version is released it will be moved to the standard PyPi.
 
 
-Getting started
-***************
+Simplest game ever
+******************
+This is the least amount of lines it requires to run your first game with Turnable:
 
-**WIP**
+.. code-block::
+
+    from turnable import build_game
+
+    g = build_game('My New Game', 'My Player Name')
+    g.start()
+
+The code above will start a CLI game with the default classes, parameters and distributions.
+I
 
 
 Most basic game

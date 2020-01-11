@@ -11,4 +11,5 @@ API
    rooms
    chars
    streams
+   helpers_text
 
