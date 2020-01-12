@@ -2,7 +2,8 @@ Turnable
 ========
 
 Trunable is a barebones, easily extensible, turn base game framework.
-[Read the docs!](https://turnable.readthedocs.io/en/latest/) (WIP)
+
+[Read the documentation here](https://turnable.readthedocs.io/) (WIP)
 
 
 Install
